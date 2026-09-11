@@ -139,7 +139,7 @@ If nobody is working on the feature, you can clone the dev branch and make your 
 
 - Should be a unqiue one/two word storage identifier to indicate its status. (ie "dark_mode" or "dashboard_grades")
 - If it has sub options (options that are specific to the main feature) these will also each need a unique identifier.
-- All options are synced and have a 8kb storage limit, so if your feature needs more than this please contact me.
+- All options are synced and have an 8kb storage limit, so if your feature needs more than this please contact me.
 
 #### Changes to html/popup.html
 
@@ -158,7 +158,7 @@ If nobody is working on the feature, you can clone the dev branch and make your 
 </div>
 ```
 
-- If it does have sub options it becomes it's own container:
+- If it does have sub options it becomes its own container:
 
 ```
 <div class="option-container">
@@ -194,12 +194,12 @@ If nobody is working on the feature, you can clone the dev branch and make your 
 
 #### Changes to js/content.js
 
-- There should be a function(s) included in the this file that does the work. The name should clearly indicate it's purpose.
+- There should be a function(s) included in the this file that does the work. The name should clearly indicate its purpose.
 - Under `applyOptionsChanges()`, add a switch case to call this function when the menu toggle is changed.
 - Depending on what your feature does, it needs to be told when to fire.
   - If the function changes any aspect of the dashboard, it should be put inside `checkDashboardReady()`.
   - If the function only adds css, it should be added to `applyAestheticChanges()`, and in this case should not be a separate function, instead add the css to the existing styles found in this function.
-  - Anything else should be put under `startExtension()` and should be placed no higher than the `checkDashboardReady` function found here.
+  - Anything else should be put under `startExtension()` and should be placed no higher than the `checkDashboardReady()` call found there.
 
 ## Star History (I think github broke it)
 
