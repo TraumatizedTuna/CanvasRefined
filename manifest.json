@@ -25,7 +25,33 @@
   "content_scripts": [
     {
       "matches": ["https://*/*"],
-      "js": ["css/darkmodecss.js", "js/backgrounds.js", "js/markdown.js", "js/content.js", "time-edit-api/index.js", "js/test.js"],
+      "js": [
+        "css/darkmodecss.js",
+        "js/backgrounds.js",
+        "js/markdown.js",
+        "js/nav.js",
+        "js/todo/todoreminders.js",
+        "js/todo/bettertodo.js",
+        "js/bettersidebar.js",
+        "js/dashboard/cardcolors.js",
+        "js/styling/darkmode.js",
+        "js/dashboard/grades.js",
+        "js/dashboard/cardassignments.js",
+        "js/dashboard/cardcustomization.js",
+        "js/dashboard/gpacalc.js",
+        "js/dashboard/dashboardnotes.js",
+        "js/styling/customfont.js",
+        "js/content.js",
+        "js/globalsearch/searchmain.js",
+        "js/globalsearch/indexing.js",
+        "js/globalsearch/searching.js",
+        "js/misc.js",
+        "js/gradeanalytics/gamain.js",
+        "js/gradeanalytics/gaimagine.js",
+        "js/utils.js",
+        "time-edit-api/index.js",
+        "js/test.js"
+      ],
       "css": ["css/content.css"],
       "run_at": "document_start"
     }
