@@ -48,9 +48,7 @@
         "js/misc.js",
         "js/gradeanalytics/gamain.js",
         "js/gradeanalytics/gaimagine.js",
-        "js/utils.js",
-        "time-edit-api/index.js",
-        "js/test.js"
+        "js/utils.js"
       ],
       "css": ["css/content.css"],
       "run_at": "document_start"
