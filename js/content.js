@@ -194,6 +194,7 @@ function applyOptionsChanges(changes) {
 			case "todo_timeframe":
 			// case "todo_overdues":
 			case "todo_hide_feedback":
+			case "todo_hide_read":
 			case "todo_full_height":
 			case "todo_ignore_card_colors":
 			case "todo_remove_icons":
@@ -884,6 +885,19 @@ function recieveMessage(request, sender, sendResponse) {
         case ("inspect"): sendResponse(inspectDarkMode(true)); break;
         case ("fixdm"): sendResponse(runDarkModeFixer(true)); break;
 		case ("updateBackground"): applyCustomBackground(); sendResponse(true); break;
+        case ("clearPlannerCache"):
+            // "Clear planner cache" (Report issue tab in the popup): drop
+            // the cache, re-fetch fresh planner data, and re-render every
+            // consumer in this tab.
+            (async () => {
+                try { await chrome.storage.local.remove(PLANNER_CACHE_KEY); } catch (e) { /* nothing stored */ }
+                if (options.assignments_due === true || options.better_todo === true) {
+                    const items = await loadPlannerItems();
+                    refreshPlannerConsumers(items);
+                }
+                sendResponse(true);
+            })();
+            return true; // keep the message channel open for async sendResponse
         default: sendResponse(true);
     }
 }

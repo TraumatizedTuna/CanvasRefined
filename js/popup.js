@@ -2,6 +2,7 @@ const syncedSwitches = ['remind', 'tab_icons', 'dark_mode', 'remlogo', 'full_wid
 const syncedSubOptions = [
 	"grade_analytics_zones",
 	"todo_hide_feedback",
+	"todo_hide_read",
 	"todo_full_height",
     "todo_confetti",
     "todo_progress_rings",
@@ -58,7 +59,7 @@ const exportCardColorToggles = ["gradient_cards", "disable_color_overlay"];
 const exportCardStyles = ["customCardStyles", "imageSize", "cardRoundness", "imageRoundness", "cardSpacing", "cardWidth", "cardHeight", "cardPadding"];
 const exportLayout = ["full_width", "center_cards", "condensed_cards", "equal_height_cards", "remlogo", "hide_new_canvas", "tab_icons"];
 const exportSidebar = ["better_sidebar", "sidebar_scale"];
-const exportTodo = ["better_todo", "todo_hide_feedback", "todo_full_height", "todo_confetti", "todo_progress_rings", "todo_timeframe", "todo_hr24", "todo_separate_scrollbar", "todo_alternate_colors", "todo_ignore_card_colors", "todo_remove_icons", "hover_preview"];
+const exportTodo = ["better_todo", "todo_hide_feedback", "todo_hide_read", "todo_full_height", "todo_confetti", "todo_progress_rings", "todo_timeframe", "todo_hr24", "todo_separate_scrollbar", "todo_alternate_colors", "todo_ignore_card_colors", "todo_remove_icons", "hover_preview"];
 const exportGpa = ["gpa_calc", "gpa_calc_prepend", "gpa_calc_cumulative", "gpa_calc_weighted"];
 const exportBackground = ["customBackgroundLink", "customBackgroundScale", "customBackgroundDaily", "customBackgroundNasaDaily", "fitImageToScreen", "card_transparency", "bg_opacity", "sidebar_opacity", "bg_blur", "sidebar_blur", "card_opacity", "card_blur"];
 // Master "On/off toggles" = every visual toggle (no GPA, no dark-mode schedule,
@@ -120,6 +121,7 @@ const defaultOptions = {
 		"todo_alternate_colors": false,
 		"todo_ignore_card_colors": false,
 		"todo_remove_icons": false,
+        "todo_hide_read": true,
         "condensed_cards": false,
         "center_cards": false,
         "custom_cards": {},
@@ -945,6 +947,7 @@ function setup() {
 			"gpa_calc_cumulative",
 			// /*'card_method_date',*/ "show_updates",
             "todo_hide_feedback",
+            "todo_hide_read",
             "todo_confetti",
 			"todo_full_height",
 			"device_dark",
@@ -1249,7 +1252,93 @@ function setup() {
     // activate storage reset button
     document.querySelector("#storage-reset-btn").addEventListener("click", () => {
         chrome.storage.sync.set(defaultOptions["sync"]);
+        updateStorageUsage();
     });
+
+    // activate planner cache clear button (Report issue tab). Clears the
+    // cached planner items locally, then tells any open Canvas tabs to
+    // re-fetch fresh data so the clear takes effect without a refresh.
+    // Keep the key in sync with PLANNER_CACHE_KEY in content.js.
+    document.querySelector("#planner-cache-clear-btn").addEventListener("click", async () => {
+        displayAlert(false, "Planner cache cleared.");
+        try {
+            await chrome.storage.local.remove("planner_cache_v1");
+        } catch (e) { /* nothing stored yet */ }
+        await sendFromPopup("clearPlannerCache");
+        updateStorageUsage();
+    });
+
+    // ---- Storage usage display (Report issue tab) ----
+    // Shows how much space the extension's settings, planner cache, and
+    // other local data take, plus the storage quota available to it.
+    function formatStorageBytes(bytes) {
+        if (bytes == null) return "unknown";
+        if (bytes < 1024) return bytes + " B";
+        if (bytes < 1048576) return (bytes / 1024).toFixed(1) + " KB";
+        return (bytes / 1048576).toFixed(2) + " MB";
+    }
+
+    // getBytesInUse is exact but not implemented everywhere (older Firefox),
+    // so fall back to measuring the serialized data as a Blob.
+    async function storageBytesInUse(area, keys) {
+        try {
+            const bytes = await area.getBytesInUse(keys ?? null);
+            if (typeof bytes === "number") return bytes;
+        } catch (e) { /* not supported */ }
+        try {
+            const data = await area.get(keys ?? null);
+            return new Blob([JSON.stringify(data)]).size;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function updateStorageUsage() {
+        const set = (id, text) => {
+            const el = document.querySelector(id);
+            if (el) el.textContent = text;
+        };
+
+        // Sync settings vs the 100 KB chrome.storage.sync quota.
+        const syncBytes = await storageBytesInUse(chrome.storage.sync);
+        set("#storage-usage-sync", syncBytes == null ? "unknown" : formatStorageBytes(syncBytes) + " of 100 KB quota");
+
+        // Planner cache: size plus item count, so users can see what the
+        // to-do cache actually costs (and that clearing it worked).
+        const cacheBytes = await storageBytesInUse(chrome.storage.local, "planner_cache_v1");
+        let cacheText = "empty";
+        if (cacheBytes) {
+            try {
+                const result = await chrome.storage.local.get("planner_cache_v1");
+                const count = result?.["planner_cache_v1"]?.items?.length;
+                cacheText = formatStorageBytes(cacheBytes) + (typeof count === "number" ? ` (${count} items)` : "");
+            } catch (e) {
+                cacheText = formatStorageBytes(cacheBytes);
+            }
+        }
+        set("#storage-usage-cache", cacheText);
+
+        // Everything else in local storage (settings the extension keeps
+        // locally, state like the analytics toggle, etc.).
+        const localBytes = await storageBytesInUse(chrome.storage.local);
+        if (localBytes == null) {
+            set("#storage-usage-local", "unknown");
+        } else {
+            const other = cacheBytes != null ? Math.max(localBytes - cacheBytes, 0) : null;
+            set("#storage-usage-local", other == null ? formatStorageBytes(localBytes) : formatStorageBytes(other));
+        }
+
+        // Quota available to the extension. With the unlimitedStorage
+        // permission this is a large slice of free disk space, so it reads
+        // big — that is expected.
+        try {
+            const est = await navigator.storage.estimate();
+            if (est && est.quota) {
+                set("#storage-usage-quota", formatStorageBytes(est.quota) + " available");
+            }
+        } catch (e) { /* estimate unsupported */ }
+    }
+    updateStorageUsage();
 
     // activate custom url input
     document.querySelector('#customDomain').addEventListener('input', function () {
@@ -1767,6 +1856,7 @@ function saveCurrentTheme() {
                 "custom_font": current["custom_font"],
                 "better_todo": current["better_todo"],
                 "todo_hide_feedback": current["todo_hide_feedback"],
+                "todo_hide_read": current["todo_hide_read"] !== false,
                 "todo_full_height": current["todo_full_height"],
                 "todo_confetti": current["todo_confetti"],
                 "todo_progress_rings": current["todo_progress_rings"],
