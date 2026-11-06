@@ -1,4 +1,4 @@
-// TODO_tuna - Most (if not all) functions should probably move to more specific places.
+// TODO_tuna - Most (if not all) functions should probably move to more specific files.
 
 function combineAssignments(data) {
     let combined = data;
